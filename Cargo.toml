@@ -1,0 +1,10 @@
+[package]
+name = "abuelo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+warp = "0.3"
+chrono = "0.4"
+rusqlite = { version = "0.32", features = ["chrono", "bundled"] }
