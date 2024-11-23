@@ -4,9 +4,8 @@ pub type UserID = u128;
 
 pub enum AccountStatusState {
     Offline,
-    Idle,
-    // Similar to discords do not disturb.
-    Silenced,
+    Away,
+    DoNotDisturb,
     Online,
 }
 
