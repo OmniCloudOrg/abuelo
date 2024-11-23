@@ -10,6 +10,7 @@ dependencies = [
  "rand",
  "ring",
  "rusqlite",
+ "serde",
  "sha2",
  "tokio",
  "warp",
@@ -142,6 +143,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-targets",
 ]

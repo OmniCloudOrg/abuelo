@@ -1,26 +1,36 @@
 use chrono::{DateTime, Utc};
 
-pub type UserID = u128;
+pub type UserID = u64;
 
-pub enum AccountStatusState {
-    Offline,
-    Away,
-    DoNotDisturb,
-    Online,
-}
-
-pub struct AccountStatus{
-    state: AccountStatusState,
-    tagline: String,
-}
-
-
-pub struct Account{
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct Account {
     username: String,
     user_id: UserID,
-    password_hash: String,
-    status: AccountStatus,
-    created_date: DateTime<Utc>,
+    creation_time: DateTime<Utc>,
     // Donator role
     premium: bool,
+}
+
+impl Account {
+    pub fn new(
+        username: String,
+        user_id: UserID,
+        creation_time: DateTime<Utc>,
+        premium: bool,
+    ) -> Self {
+        Self {
+            username,
+            user_id,
+            creation_time,
+            premium,
+        }
+    }
+
+    pub fn premium(&self) -> bool {
+        self.premium
+    }
+
+    pub fn creation_time(&self) -> DateTime<Utc> {
+        self.creation_time
+    }
 }
