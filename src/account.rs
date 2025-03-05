@@ -9,6 +9,7 @@ pub struct Account {
     creation_time: DateTime<Utc>,
     // Donator role
     premium: bool,
+    random: i64,
 }
 
 impl Account {
@@ -17,12 +18,14 @@ impl Account {
         user_id: UserID,
         creation_time: DateTime<Utc>,
         premium: bool,
+        random: i64,
     ) -> Self {
         Self {
             username,
             user_id,
             creation_time,
             premium,
+            random,
         }
     }
 
@@ -32,5 +35,9 @@ impl Account {
 
     pub fn creation_time(&self) -> DateTime<Utc> {
         self.creation_time
+    }
+
+    pub fn id(&self) -> UserID {
+        self.user_id
     }
 }

@@ -16,7 +16,19 @@ pub enum UserCreationError {
     DBError(rusqlite::Error),
 }
 
+#[derive(Debug)]
+pub enum HandleDBError {
+    HandleAlreadyExists,
+    DBError(rusqlite::Error),
+}
+
 impl From<rusqlite::Error> for UserCreationError {
+    fn from(value: rusqlite::Error) -> Self {
+        Self::DBError(value)
+    }
+}
+
+impl From<rusqlite::Error> for HandleDBError {
     fn from(value: rusqlite::Error) -> Self {
         Self::DBError(value)
     }
@@ -35,6 +47,20 @@ impl Display for UserCreationError {
     }
 }
 
+impl std::error::Error for HandleDBError {}
+impl Display for HandleDBError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            HandleDBError::HandleAlreadyExists => {
+                write!(f, "Handle already exists.")
+            }
+            HandleDBError::DBError(e) => {
+                write!(f, "DBError: {}", e)
+            }
+        }
+    }
+}
+
 impl Database {
     pub fn new() -> Self {
         let conn = Connection::open("user_db.db3").unwrap();
@@ -44,7 +70,7 @@ impl Database {
         // use the existing table instead
         // NOTE: Look at the other possible errors here
         let _val = conn.execute(
-            "CREATE TABLE users (
+            "CREATE TABLE user (
             user_id           INTEGER PRIMARY KEY,
             username          TINYTEXT NOT NULL,
             password_hash     TINYTEXT NOT NULL,
@@ -55,19 +81,30 @@ impl Database {
             (),
         );
 
+        let _val = conn.execute(
+            "CREATE TABLE handle (
+            handle_id           INTEGER PRIMARY KEY,
+            handle_val          BIGINT UNSIGNED NOT NULL
+            CONSTRAINT fk_usr_handle FOREIGN KEY (user)     
+            REFERENCES person (id)
+        )",
+            (),
+        );
+
         Self { conn }
     }
 
     pub fn get_user(&self, username: &str) -> Result<Account> {
-        let (user_id, creation_time, premium): (UserID, DateTime<Utc>, bool) =
+        let (user_id, creation_time, premium, random): (UserID, DateTime<Utc>, bool, i64) =
             self.conn.query_row(
-                "SELECT username, user_id, creation_time, is_premium FROM users WHERE username=?1",
+                "SELECT username, user_id, creation_time, is_premium, random_value FROM user WHERE username=?1",
                 [username],
                 |row| {
                     let user_id = row.get(1)?;
                     let creation_time = row.get(2)?;
                     let premium = row.get(3)?;
-                    Ok((user_id, creation_time, premium))
+                    let random = row.get(4)?;
+                    Ok((user_id, creation_time, premium, random))
                 },
             )?;
         Ok(Account::new(
@@ -75,6 +112,7 @@ impl Database {
             user_id,
             creation_time,
             premium,
+            random,
         ))
     }
 
@@ -86,7 +124,7 @@ impl Database {
         let num = rand::random::<u64>();
         let password_hash = self.hash_password(password, creation_time, num);
         self.conn.execute(
-            "INSERT INTO users (
+            "INSERT INTO user (
             username, 
             password_hash, 
             creation_time, 
@@ -108,7 +146,7 @@ impl Database {
 
     pub fn check_login(&self, username: &str, password: &str) -> bool {
         let result = self.conn.query_row(
-            "SELECT creation_time, random_value, username FROM users WHERE username=?1",
+            "SELECT creation_time, random_value, username FROM user WHERE username=?1",
             [username],
             |row| {
                 let creation_time = row.get(0)?;
@@ -121,7 +159,7 @@ impl Database {
         }
         let (creation_time, num) = result.unwrap();
         let saved_password_hash: Result<Rc<str>> = self.conn.query_row(
-            "SELECT password_hash, username FROM users WHERE username=?1",
+            "SELECT password_hash, username FROM user WHERE username=?1",
             [username],
             |row| row.get::<usize, Rc<str>>(0),
         );
@@ -130,5 +168,29 @@ impl Database {
         }
 
         *saved_password_hash.unwrap() == self.hash_password(password, creation_time, num)
+    }
+
+    // HANDLE FUNCTIONS --------------------------------------------------
+    pub fn add_handle_to_db(&self, user: &Account, handle: u64) -> Result<(), HandleDBError> {
+        let saved_handle = self
+            .conn
+            .query_row(
+                "SELECT handle_val FROM handle WHERE handle_val=?1",
+                [handle],
+                |row| row.get::<usize, u64>(0),
+            )
+            .is_ok();
+        if saved_handle {
+            return Err(HandleDBError::HandleAlreadyExists);
+        }
+        self.conn.execute(
+            "INSERT INTO handle (
+            handle_val
+            fk_usr_handle
+            ) 
+            VALUES (?1, ?2)",
+            (handle, user.id()),
+        )?;
+        Ok(())
     }
 }
