@@ -59,15 +59,16 @@ impl Database {
     }
 
     pub fn get_user(&self, username: &str) -> Result<Account> {
-        let (user_id, creation_time, premium): (UserID, DateTime<Utc>, bool) =
+        let (user_id, creation_time, premium, random): (UserID, DateTime<Utc>, bool, i64) =
             self.conn.query_row(
-                "SELECT username, user_id, creation_time, is_premium FROM users WHERE username=?1",
+                "SELECT username, user_id, creation_time, is_premium, random_value FROM users WHERE username=?1",
                 [username],
                 |row| {
                     let user_id = row.get(1)?;
                     let creation_time = row.get(2)?;
                     let premium = row.get(3)?;
-                    Ok((user_id, creation_time, premium))
+                    let random = row.get(4)?;
+                    Ok((user_id, creation_time, premium, random))
                 },
             )?;
         Ok(Account::new(
@@ -75,6 +76,7 @@ impl Database {
             user_id,
             creation_time,
             premium,
+            random,
         ))
     }
 
