@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use warp::Filter;
 
-use crate::database::Database;
+use crate::{database::Database, handle::Handle};
 
 pub fn get_routes() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     create_user().or(auth_user()).or(get_user())
@@ -80,6 +80,7 @@ struct UserAuthRequest {
 #[derive(serde::Serialize, serde::Deserialize)]
 struct UserAuthResponse {
     success: bool,
+    handle: Option<u64>,
     message: String,
 }
 fn auth_user() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -89,14 +90,17 @@ fn auth_user() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejectio
         .map(|body: UserAuthRequest| {
             let db = Database::new();
             let reply = if db.check_login(&body.username, &body.password) {
+                let handle = Handle::new(&(db.get_user(&body.username).unwrap()), db).unwrap();
                 UserAuthResponse {
                     success: true,
                     message: "".to_string(),
+                    handle: Some(handle.get()),
                 }
             } else {
                 UserAuthResponse {
                     success: false,
                     message: "Username or Password is invalid".to_string(),
+                    handle: None,
                 }
             };
             warp::reply::json(&reply)

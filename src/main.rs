@@ -2,7 +2,7 @@ use routes::get_routes;
 
 mod account;
 mod database;
-mod handlers;
+mod handle;
 mod routes;
 
 #[tokio::main]

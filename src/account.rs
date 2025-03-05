@@ -36,4 +36,8 @@ impl Account {
     pub fn creation_time(&self) -> DateTime<Utc> {
         self.creation_time
     }
+
+    pub fn id(&self) -> UserID {
+        self.user_id
+    }
 }
