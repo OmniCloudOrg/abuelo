@@ -93,8 +93,8 @@ fn auth_user() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejectio
             log::info!("Authing user rn.");
             let db = Database::new();
             let reply = if db.check_login(&body.username, &body.password) {
+                // TODO: get rid of unwraps here in favor of good responses
                 let inner_handle = db.get_user(&body.username).unwrap();
-
                 let handle = Handle::new(&(inner_handle), db).unwrap();
                 log::info!("All good");
                 let handle2 = Some(handle.get());
