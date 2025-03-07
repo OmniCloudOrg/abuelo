@@ -47,9 +47,11 @@ struct UserGetResponse {
     premium: Option<bool>,
 }
 fn get_user() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    // log::info!("GETted user");
     warp::get()
         .and(warp::path!("user" / String))
         .map(|username: String| {
+            log::info!("Got {} user.", username);
             let db = Database::new();
             let acc = db.get_user(&username);
             let reply = if acc.is_err() {
@@ -85,18 +87,24 @@ struct UserAuthResponse {
 }
 fn auth_user() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::post()
-        .and(warp::path!("user" / "auth"))
-        .and(warp::body::json())
-        .map(|body: UserAuthRequest| {
+    .and(warp::path!("user" / "auth"))
+    .and(warp::body::json())
+    .map(|body: UserAuthRequest| {
+            log::info!("Authing user rn.");
             let db = Database::new();
             let reply = if db.check_login(&body.username, &body.password) {
-                let handle = Handle::new(&(db.get_user(&body.username).unwrap()), db).unwrap();
+                let inner_handle = db.get_user(&body.username).unwrap();
+
+                let handle = Handle::new(&(inner_handle), db).unwrap();
+                log::info!("All good");
+                let handle2 = Some(handle.get());
                 UserAuthResponse {
                     success: true,
                     message: "".to_string(),
-                    handle: Some(handle.get()),
+                    handle: handle2,
                 }
             } else {
+                log::info!("Failed to auth user {}", body.username);
                 UserAuthResponse {
                     success: false,
                     message: "Username or Password is invalid".to_string(),
