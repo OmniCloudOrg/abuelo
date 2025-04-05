@@ -198,4 +198,38 @@ impl Database {
         )?;
         Ok(())
     }
+    
+    // Get all handles for a user
+    pub fn get_handles_for_user(&self, user_id: UserID) -> Result<Vec<u64>> {
+        let mut stmt = self.conn.prepare("SELECT handle_val FROM handle WHERE user_id=?1")?;
+        let rows = stmt.query_map([user_id], |row| row.get::<usize, u64>(0))?;
+        
+        let mut handles = Vec::new();
+        for handle_result in rows {
+            handles.push(handle_result?);
+        }
+        
+        Ok(handles)
+    }
+    
+    // Check if a handle belongs to a user
+    pub fn is_handle_owned_by_user(&self, handle: u64, user_id: UserID) -> bool {
+        self.conn
+            .query_row(
+                "SELECT handle_val FROM handle WHERE handle_val=?1 AND user_id=?2",
+                [handle, user_id],
+                |row| row.get::<usize, u64>(0),
+            )
+            .is_ok()
+    }
+    
+    // Delete a handle
+    pub fn delete_handle(&self, handle: u64, user_id: UserID) -> Result<bool> {
+        let rows_affected = self.conn.execute(
+            "DELETE FROM handle WHERE handle_val=?1 AND user_id=?2",
+            [handle, user_id],
+        )?;
+        
+        Ok(rows_affected > 0)
+    }
 }

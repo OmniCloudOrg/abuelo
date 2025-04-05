@@ -73,7 +73,7 @@ mod unit_tests {
         let user = db.get_user("handle_test_user").unwrap();
         
         // Test creating a handle
-        let handle_result = Handle::new(&user, db);
+        let handle_result = Handle::new(&user, &db);
         assert!(handle_result.is_ok());
         
         let handle = handle_result.unwrap();
