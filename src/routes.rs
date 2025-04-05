@@ -34,6 +34,8 @@ fn get_user_handles(username: String) -> Json<UserHandlesResponse> {
     
     let user_result = db.get_user(&username);
     if user_result.is_err() {
+        let err = user_result.err().unwrap();
+        log::error!("User not found while getting handles: {}, error: {:?}", username, err);
         return Json(UserHandlesResponse {
             success: false,
             message: format!("User not found: {}", username),
@@ -47,17 +49,21 @@ fn get_user_handles(username: String) -> Json<UserHandlesResponse> {
     match handles_result {
         Ok(handles) => {
             let handle_values: Vec<u64> = handles.iter().map(|h| h.get()).collect();
+            log::info!("Successfully retrieved {} handles for user: {}", handle_values.len(), username);
             Json(UserHandlesResponse {
                 success: true,
                 message: "".to_string(),
                 handles: Some(handle_values),
             })
         },
-        Err(err) => Json(UserHandlesResponse {
-            success: false,
-            message: format!("Error retrieving handles: {}", err),
-            handles: None,
-        }),
+        Err(err) => {
+            log::error!("Error retrieving handles for user {}: {:?}", username, err);
+            Json(UserHandlesResponse {
+                success: false,
+                message: format!("Error retrieving handles: {}", err),
+                handles: None,
+            })
+        },
     }
 }
 
@@ -67,6 +73,7 @@ fn create_new_handle(body: Json<HandleRequest>) -> Json<HandleResponse> {
     let db = Database::new();
     
     if !db.check_login(&body.username, &body.password) {
+        log::warn!("Authentication failed during handle creation for user: {}", body.username);
         return Json(HandleResponse {
             success: false,
             message: "Invalid username or password".to_string(),
@@ -76,6 +83,8 @@ fn create_new_handle(body: Json<HandleRequest>) -> Json<HandleResponse> {
     
     let user_result = db.get_user(&body.username);
     if user_result.is_err() {
+        let err = user_result.err().unwrap();
+        log::error!("User not found during handle creation: {}, error: {:?}", body.username, err);
         return Json(HandleResponse {
             success: false,
             message: "User not found".to_string(),
@@ -85,16 +94,22 @@ fn create_new_handle(body: Json<HandleRequest>) -> Json<HandleResponse> {
     
     let user = user_result.unwrap();
     match Handle::new(&user, &db) {
-        Ok(handle) => Json(HandleResponse {
-            success: true,
-            message: "Handle created successfully".to_string(),
-            handle: Some(handle.get()),
-        }),
-        Err(err) => Json(HandleResponse {
-            success: false,
-            message: format!("Failed to create handle: {:?}", err),
-            handle: None,
-        }),
+        Ok(handle) => {
+            log::info!("Successfully created new handle {} for user: {}", handle.get(), body.username);
+            Json(HandleResponse {
+                success: true,
+                message: "Handle created successfully".to_string(),
+                handle: Some(handle.get()),
+            })
+        },
+        Err(err) => {
+            log::error!("Failed to create handle for user {}: {:?}", body.username, err);
+            Json(HandleResponse {
+                success: false,
+                message: format!("Failed to create handle: {:?}", err),
+                handle: None,
+            })
+        },
     }
 }
 
@@ -104,6 +119,7 @@ fn delete_handle(body: Json<DeleteHandleRequest>) -> Json<HandleResponse> {
     let db = Database::new();
     
     if !db.check_login(&body.username, &body.password) {
+        log::warn!("Authentication failed during handle deletion for user: {}", body.username);
         return Json(HandleResponse {
             success: false,
             message: "Invalid username or password".to_string(),
@@ -113,6 +129,8 @@ fn delete_handle(body: Json<DeleteHandleRequest>) -> Json<HandleResponse> {
     
     let user_result = db.get_user(&body.username);
     if user_result.is_err() {
+        let err = user_result.err().unwrap();
+        log::error!("User not found during handle deletion: {}, error: {:?}", body.username, err);
         return Json(HandleResponse {
             success: false,
             message: "User not found".to_string(),
@@ -124,6 +142,7 @@ fn delete_handle(body: Json<DeleteHandleRequest>) -> Json<HandleResponse> {
     let handle = Handle::from_value(body.handle);
     
     if !handle.is_owned_by_user(user.id(), &db) {
+        log::warn!("Attempt to delete handle {} that doesn't belong to user: {}", body.handle, body.username);
         return Json(HandleResponse {
             success: false,
             message: "This handle does not belong to the user".to_string(),
@@ -132,21 +151,30 @@ fn delete_handle(body: Json<DeleteHandleRequest>) -> Json<HandleResponse> {
     }
     
     match handle.delete(user.id(), &db) {
-        Ok(true) => Json(HandleResponse {
-            success: true,
-            message: "Handle deleted successfully".to_string(),
-            handle: Some(handle.get()),
-        }),
-        Ok(false) => Json(HandleResponse {
-            success: false,
-            message: "Handle not found".to_string(),
-            handle: None,
-        }),
-        Err(err) => Json(HandleResponse {
-            success: false,
-            message: format!("Error deleting handle: {}", err),
-            handle: None,
-        }),
+        Ok(true) => {
+            log::info!("Successfully deleted handle {} for user: {}", body.handle, body.username);
+            Json(HandleResponse {
+                success: true,
+                message: "Handle deleted successfully".to_string(),
+                handle: Some(handle.get()),
+            })
+        },
+        Ok(false) => {
+            log::warn!("Handle {} not found during deletion for user: {}", body.handle, body.username);
+            Json(HandleResponse {
+                success: false,
+                message: "Handle not found".to_string(),
+                handle: None,
+            })
+        },
+        Err(err) => {
+            log::error!("Error deleting handle {} for user {}: {:?}", body.handle, body.username, err);
+            Json(HandleResponse {
+                success: false,
+                message: format!("Error deleting handle: {}", err),
+                handle: None,
+            })
+        },
     }
 
 }
