@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 
+
+
 pub type UserID = u64;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -10,6 +12,7 @@ pub struct Account {
     // Donator role
     premium: bool,
     random: i64,
+    // factors: Factors,
 }
 
 impl Account {
