@@ -1,10 +1,14 @@
 use chrono::{DateTime, Utc};
-use rocket::{serde::json::Json, Route};
+use rocket::post;
 
+
+use rocket::{serde::json::Json, Route};
+use rocket::get;
+use rocket::routes as rocket_routes;
 use crate::{database::Database, handle::Handle};
 
 pub fn get_routes() -> Vec<Route> {
-    routes![create_user, auth_user, get_user]
+    rocket_routes![create_user, auth_user, get_user]
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

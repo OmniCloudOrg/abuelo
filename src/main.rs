@@ -9,7 +9,6 @@ pub mod mfa;
 use totp_rs::Secret;
 use totp_rs::TOTP;
 use totp_rs::Algorithm;
-use abuelo::{logger, routes};
 
 #[rocket::main]
 async fn main() {
