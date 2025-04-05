@@ -10,44 +10,17 @@ Return information about a particular user in the following format:
 {
     "success" : Boolean,
     "message" : String,
-    "creation" : String,
-    "is_premium" : Boolean,
+    "creation_time" : String,
+    "premium" : Boolean,
 }
 ```
 - **success**: if the user is found successfully then the value returned is
 true
 - **message**: if success is false, contains an error message to give to the 
 user
-- **creation**: if success is true, contains the creation date of the account in the format
+- **creation_time**: if success is true, contains the creation date of the account in the format
 YYYY-MM-DD HH:MM
-- **is_premium**: if succuss is true, contains whether or not the account is premium
-
-## POST /user/:username/update
-Updates the records in the database
-Request Format:
-```json
-{
-    "username" : String?,
-    "password" : String,
-    "new_password" : String?
-}
-```
-(question marks indicate the value is nullable)
-- **username**: The new username of the user
-- **password**: The (plain-text currently but in future RSA encrypted) password of the user
-- **new_password**: The new (plain-text currently but in future RSA encrypted) password of the user
-
-Response Format:
-```json
-{
-    "success" : Boolean,
-    "message" : String,
-}
-```
-- **success**: if the user is updated successfully then the value returned is
-true
-- **message**: if success is false, contains an error message to give to the user
-
+- **premium**: if success is true, contains whether or not the account is premium
 
 ## POST /user/create
 Adds a user to the database
@@ -89,8 +62,10 @@ Response Format:
 {
     "success" : Boolean,
     "message" : String,
+    "handle": Number?
 }
 ```
 - **success**: if the user is authed successfully then the value returned is
 true
 - **message**: if success is false, contains an error message to give to the user
+- **handle**: if success is true, contains the handle number for the user

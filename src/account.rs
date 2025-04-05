@@ -40,4 +40,9 @@ impl Account {
     pub fn id(&self) -> UserID {
         self.user_id
     }
+    
+    // Added for testing
+    pub fn username(&self) -> &str {
+        &self.username
+    }
 }

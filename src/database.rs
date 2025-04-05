@@ -63,7 +63,11 @@ impl Display for HandleDBError {
 
 impl Database {
     pub fn new() -> Self {
-        let conn = Connection::open("user_db.db3").unwrap();
+        Self::new_with_path("user_db.db3")
+    }
+    
+    pub fn new_with_path(db_path: &str) -> Self {
+        let conn = Connection::open(db_path).unwrap();
 
         // If this returns an error; it's prolly cuz the table already exists.
         // That's fine and we can just let it error and the other queries will
@@ -84,9 +88,10 @@ impl Database {
         let _val = conn.execute(
             "CREATE TABLE handle (
             handle_id           INTEGER PRIMARY KEY,
-            handle_val          BIGINT UNSIGNED NOT NULL
-            CONSTRAINT fk_usr_handle FOREIGN KEY (user)     
-            REFERENCES person (id)
+            handle_val          BIGINT UNSIGNED NOT NULL,
+            user_id             INTEGER NOT NULL,
+            CONSTRAINT fk_usr_handle FOREIGN KEY (user_id)     
+            REFERENCES user (user_id)
         )",
             (),
         );
@@ -97,13 +102,13 @@ impl Database {
     pub fn get_user(&self, username: &str) -> Result<Account> {
         let (user_id, creation_time, premium, random): (UserID, DateTime<Utc>, bool, i64) =
             self.conn.query_row(
-                "SELECT username, user_id, creation_time, is_premium, random_value FROM user WHERE username=?1",
+                "SELECT user_id, creation_time, is_premium, random_value FROM user WHERE username=?1",
                 [username],
                 |row| {
-                    let user_id = row.get(1)?;
-                    let creation_time = row.get(2)?;
-                    let premium = row.get(3)?;
-                    let random = row.get(4)?;
+                    let user_id = row.get(0)?;
+                    let creation_time = row.get(1)?;
+                    let premium = row.get(2)?;
+                    let random = row.get(3)?;
                     Ok((user_id, creation_time, premium, random))
                 },
             )?;
@@ -121,8 +126,8 @@ impl Database {
             return Err(UserCreationError::UsernameTaken);
         }
         let creation_time = Utc::now();
-        let num = rand::random::<u64>();
-        let password_hash = self.hash_password(password, creation_time, num);
+        let num = rand::random::<i64>(); // Changed to i64 to match schema
+        let password_hash = self.hash_password(password, creation_time, num as u64);
         self.conn.execute(
             "INSERT INTO user (
             username, 
@@ -146,12 +151,12 @@ impl Database {
 
     pub fn check_login(&self, username: &str, password: &str) -> bool {
         let result = self.conn.query_row(
-            "SELECT creation_time, random_value, username FROM user WHERE username=?1",
+            "SELECT creation_time, random_value FROM user WHERE username=?1",
             [username],
             |row| {
                 let creation_time = row.get(0)?;
-                let num = row.get(1)?;
-                Ok((creation_time, num))
+                let num: i64 = row.get(1)?;
+                Ok((creation_time, num as u64))
             },
         );
         if result.is_err() {
@@ -159,7 +164,7 @@ impl Database {
         }
         let (creation_time, num) = result.unwrap();
         let saved_password_hash: Result<Rc<str>> = self.conn.query_row(
-            "SELECT password_hash, username FROM user WHERE username=?1",
+            "SELECT password_hash FROM user WHERE username=?1",
             [username],
             |row| row.get::<usize, Rc<str>>(0),
         );
@@ -185,8 +190,8 @@ impl Database {
         }
         self.conn.execute(
             "INSERT INTO handle (
-            handle_val
-            fk_usr_handle
+            handle_val,
+            user_id
             ) 
             VALUES (?1, ?2)",
             (handle, user.id()),

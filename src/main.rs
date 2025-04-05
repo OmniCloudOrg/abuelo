@@ -1,20 +1,19 @@
-use routes::get_routes;
-mod account;
-mod database;
-mod handle;
-mod logger;
-mod routes;
+use abuelo::{logger, routes};
 
-#[tokio::main]
+#[rocket::main]
 async fn main() {
     let ret = logger::init();
     match ret {
-        Ok(())=>{
+        Ok(()) => {
             log::info!("Functional log!")
         },
-        Err(a)=>{
+        Err(a) => {
             println!("Broken log. {}", a)
         },
     }
-    warp::serve(get_routes()).run(([127, 0, 0, 1], 3030)).await;
+    
+    let _ = rocket::build()
+        .mount("/", routes::get_routes())
+        .launch()
+        .await;
 }

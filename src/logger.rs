@@ -13,7 +13,7 @@ impl log::Log for Logger {
 
     fn log(&self, record: &log::Record) {
         let lvl = record.level();
-        let lvl_color = match lvl {
+        let _lvl_color = match lvl {
             Level::Error => "160",
             Level::Warn => "172",
             Level::Info => "47",
@@ -48,6 +48,8 @@ impl log::Log for Logger {
 
 
 
+/// Initializes the logger with appropriate log levels based on debug assertions.
+/// Returns `Ok(())` if logger was set successfully, or a `SetLoggerError` if it fails.
 pub fn init() -> Result<(), SetLoggerError> {
     log::set_logger(&crate::logger::Logger)?;
     if cfg!(debug_assertions) {
